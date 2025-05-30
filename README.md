@@ -165,7 +165,7 @@ After training, evaluate the model's performance on the test set.
 
 ## Model Performance
 
-The model was trained on Kaggle. The following plots showcase its performance.
+The model was trained on Kaggle. The following plots showcase its performance. The training process and environment can be viewed in [this Kaggle Notebook](https://www.kaggle.com/code/mustafaelzowawi/brain-tumor-classification-lgg-vs-hgg).
 
 ### Training History
 
