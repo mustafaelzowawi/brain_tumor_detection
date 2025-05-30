@@ -14,6 +14,20 @@ This project implements a 3D Convolutional Neural Network (CNN) using MONAI and 
 *   **Training and Evaluation:** Scripts for model training, validation, and performance evaluation on a test set.
 *   **Configuration Management:** Centralized configuration for paths, hyperparameters, and model settings.
 
+### Model Architecture
+
+The classification model (`src/model.py` and used in the Kaggle training notebook) is a `ResNet50Classifier` built upon MONAI's 3D ResNet50. The architecture is adapted as follows:
+
+1.  **Base Model:** It uses MONAI's `resnet50` configured for 3D spatial dimensions.
+    *   When `PRETRAINED_RESNET50` is `True` (default in `src/config.py` and as used in the Kaggle notebook for training), the system attempts to load a base ResNet50 model pretrained on a dataset like MedicalNet. This pretrained model is expected to have been trained with 3 input channels and a certain number of output classes (e.g., 10, as specified by `config.NUM_CLASSES_PRETRAINED`).
+    *   The Kaggle notebook training logs indicate that pretrained weights (specifically `resnet_50_23dataset.pth`) were successfully loaded for the base model.
+
+2.  **Input Layer Adaptation:** The first convolutional layer (`conv1`) of the loaded base ResNet50 model is replaced with a new `torch.nn.Conv3d` layer. This new `conv1` is specifically designed to accept the number of input modalities defined in `config.NUM_INPUT_CHANNELS` (which is 4, corresponding to FLAIR, T1, T1ce, and T2). The other parameters of this convolutional layer (output channels, kernel size, stride, padding) are retained from the original base model's `conv1` layer.
+
+3.  **Output Layer Adaptation:** The final fully connected layer (`fc`) of the base ResNet50 model is replaced with a new `torch.nn.Linear` layer. This layer is configured to output `config.NUM_CLASSES` (which is 1 for the binary classification task of distinguishing LGG from HGG).
+
+This approach allows leveraging the learned features from a model pretrained on a large medical imaging dataset (MedicalNet) while tailoring the input and output layers to the specific requirements of this brain tumor classification task.
+
 ## Project Structure
 
 ```

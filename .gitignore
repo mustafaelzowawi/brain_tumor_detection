@@ -117,6 +117,9 @@ venv.bak/
 # Terraform state file
 *.tfstate*
 
+# Kaggle files
+notebook/
+
 # Data files
 data/
 models/
