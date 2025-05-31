@@ -124,6 +124,9 @@ notebook/
 data/
 models/
 
+# Resume (For cursor context)
+resume_cursor_context/
+
 # Logs
 # The logs/ directory itself is tracked (due to .gitkeep if present or if it has committed files).
 # To ignore all log files within the logs/ directory, uncomment the line below:
