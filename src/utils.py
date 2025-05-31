@@ -20,26 +20,20 @@ def load_labels(name_mapping_path):
     """
     try:
         name_mapping_df = pd.read_csv(name_mapping_path)
-        print("Name Mapping DataFrame Head:")
-        print(name_mapping_df.head())
 
         # Filter out rows with NA in the specified subject ID column
         valid_mapping_df = name_mapping_df.dropna(subset=[config.SUBJECT_ID_COL])
-        print(f"Valid mappings after dropping NA: {len(valid_mapping_df)}")
 
         # Extract subject IDs and labels
         labels_df = valid_mapping_df[[config.SUBJECT_ID_COL, config.GRADE_COL]].copy()
-        print("Labels DataFrame Head:")
-        print(labels_df.head())
 
         # Check for missing grades
         missing_grades = labels_df[labels_df[config.GRADE_COL].isna()]
         if not missing_grades.empty:
-            print("\nWarning: Some Subject IDs are missing Grades.")
-            print(missing_grades)
+            logging.warning("Some Subject IDs are missing Grades: %s", missing_grades)
             # Drop subjects with missing grades
             labels_df = labels_df.dropna(subset=[config.GRADE_COL])
-            print(f"Dropped {len(missing_grades)} subjects with missing Grades.")
+            logging.info("Dropped %s subjects with missing Grades.", len(missing_grades))
 
         # Map labels to integers using the mapping from config
         labels_df[config.TARGET_LABEL] = labels_df[config.GRADE_COL].map(config.LABEL_MAPPING)
@@ -55,7 +49,7 @@ def load_labels(name_mapping_path):
             columns={config.SUBJECT_ID_COL: 'SubjectID'}
         )
 
-        print(f"Loaded {len(data_df)} subjects with valid labels.")
+        logging.info("Loaded %s subjects with valid labels.", len(data_df))
         return data_df
 
     except FileNotFoundError:
