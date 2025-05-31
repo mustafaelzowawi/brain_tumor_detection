@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 from . import config
 
-# Setup logging for this module if not already configured globally
+# Setup logging 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -36,9 +36,9 @@ def get_base_resnet50_model():
             logger.info(f"Initializing base ResNet50 structure for pretrained weights: SPATIAL_DIMS={config.SPATIAL_DIMS}, n_input_channels=3 (expected by MedicalNet), num_classes={config.NUM_CLASSES_PRETRAINED}")
             model = resnet50(
                 spatial_dims=config.SPATIAL_DIMS,
-                n_input_channels=3, # Or 1, depending on MedicalNet version
+                n_input_channels=3, 
                 num_classes=config.NUM_CLASSES_PRETRAINED,
-                pretrained=False, # We load weights manually
+                pretrained=False,
                 feed_forward=True,
                 progress=True
             )
@@ -46,8 +46,6 @@ def get_base_resnet50_model():
             weights_path = config.PRETRAINED_WEIGHTS_PATH
             if os.path.exists(weights_path):
                 logger.info(f"Loading pretrained weights from: {weights_path}")
-                # MONAI's MedicalNet weights might be a dict with a 'state_dict' key
-                # or just the state_dict itself.
                 # Common practice for MONAI's MedicalNet is that it's a full model checkpoint.
                 # We need to load the state_dict.
                 checkpoint = torch.load(weights_path, map_location=torch.device('cpu'))
@@ -60,14 +58,14 @@ def get_base_resnet50_model():
                     if 'state_dict' in checkpoint:
                         state_dict_to_load = checkpoint['state_dict']
                         logger.info("Loaded state_dict from 'state_dict' key in checkpoint.")
-                    elif 'model' in checkpoint: # Common in some training scripts
+                    elif 'model' in checkpoint:
                         state_dict_to_load = checkpoint['model']
                         logger.info("Loaded state_dict from 'model' key in checkpoint.")
-                    elif 'net' in checkpoint: # Another common key
+                    elif 'net' in checkpoint: 
                         state_dict_to_load = checkpoint['net']
                         logger.info("Loaded state_dict from 'net' key in checkpoint.")
                     else: # Check if the checkpoint itself is a state_dict
-                        # A common check: does it have typical layer keys?
+                        # A check if it has typical layer keys
                         if any(k.endswith('.weight') or k.endswith('.bias') for k in checkpoint.keys()):
                             state_dict_to_load = checkpoint
                             logger.info("Checkpoint itself appears to be a state_dict.")
@@ -87,7 +85,7 @@ def get_base_resnet50_model():
                     # Also, the ResNet architecture in MONAI can sometimes have keys like 'model.conv1.weight'
                     # if it's nested. The resnet50() function returns the core model directly.
                     
-                    # Standardize keys: remove "module." prefix if present
+                    # Remove "module." prefix if present
                     new_state_dict = OrderedDict()
                     has_module_prefix = any(key.startswith("module.") for key in state_dict_to_load.keys())
                     
@@ -97,12 +95,8 @@ def get_base_resnet50_model():
                             name = k[7:]  # remove `module.`
                         new_state_dict[name] = v
                     
-                    # Check for 'model.' prefix which can occur if the saved model was `self.model = resnet50(...)`
-                    # and `torch.save(model.state_dict())` was called instead of `torch.save(model.model.state_dict())`.
-                    # Or if the MedicalNet weights themselves are structured this way.
-                    # The `resnet50` function from MONAI returns the network directly, so keys should not have 'model.'
-                    # However, if the pretrained file *does* have it, we need to strip it.
-                    # Let's check a few typical keys.
+
+                    # If the pretrained file has 'model.' prefix, remove it.
                     if not any(k.startswith("conv1.") or k.startswith("layer1.") for k in new_state_dict.keys()):
                         # Possible nesting like 'model.conv1.weight'
                         if any(k.startswith("model.conv1.") or k.startswith("model.layer1.") for k in new_state_dict.keys()):
@@ -117,10 +111,6 @@ def get_base_resnet50_model():
 
                     # The ResNet50Classifier will replace conv1 and fc, so we don't strictly need to load them,
                     # but it's cleaner if the state_dict matches.
-                    # If MedicalNet has a different number of input channels for its conv1
-                    # or a different number of output classes for its fc, `load_state_dict` might complain
-                    # about mismatched shapes for these two layers if `strict=True`.
-                    # The ResNet50Classifier replaces these anyway.
                     # We can load with strict=False to ignore mismatches for layers that will be replaced.
                     try:
                         model.load_state_dict(new_state_dict, strict=False)
@@ -158,15 +148,12 @@ def get_base_resnet50_model():
     
     # Fallback or if PRETRAINED_RESNET50 is False: Initialize with random weights.
     # The ResNet50Classifier will adapt the input channels and output classes.
-    # For the base model here, num_classes for the internal FC layer doesn't strictly matter
-    # as it will be replaced, but let's use a common default like 1000 (ImageNet size) or config.NUM_CLASSES.
-    # n_input_channels here is also less critical as it's replaced, but good to be explicit.
     logger.info("Initializing MONAI ResNet50 with random weights.")
     model = resnet50(
         spatial_dims=config.SPATIAL_DIMS,
         n_input_channels=config.NUM_INPUT_CHANNELS, # Will be adapted, but set for base model
-        num_classes=1000, # Standard for many ResNets, will be replaced by ResNet50Classifier
-        pretrained=False # Explicitly False for random weights
+        num_classes=1000,
+        pretrained=False # False for random weights
     )
     logger.info("MONAI ResNet50 with random weights initialized.")
     return model
@@ -181,9 +168,7 @@ class ResNet50Classifier(nn.Module):
         super(ResNet50Classifier, self).__init__()
         self.features = base_model
 
-        # 1. Adapt the first convolutional layer for the desired number of input channels
-        # Original first conv layer in ResNet50: self.features.conv1
-        # We need to check its attributes to correctly create a new one.
+        # Adapt the first convolutional layer for the desired number of input channels
         original_conv1 = self.features.conv1
         
         logger.info(f"Adapting ResNet50's first conv layer from {original_conv1.in_channels} to {num_input_channels_target} input channels...")
@@ -196,14 +181,13 @@ class ResNet50Classifier(nn.Module):
             padding=original_conv1.padding,
             bias=(original_conv1.bias is not None)
         )
-        # Initialize new conv1 weights (e.g., Kaiming normal)
+        # Initialize new conv1 weights
         nn.init.kaiming_normal_(self.features.conv1.weight, mode='fan_out', nonlinearity='relu')
         if self.features.conv1.bias is not None:
             nn.init.constant_(self.features.conv1.bias, 0)
         logger.info("New conv1 layer created and weights initialized.")
 
-        # 2. Replace the final fully connected layer (classifier head)
-        # The MONAI ResNet50 should have an 'fc' attribute for its classifier.
+        # Replace the final fully connected layer (classifier head)
         if not hasattr(self.features, 'fc'):
             raise AttributeError("The provided ResNet50 base model does not have an 'fc' (fully connected) attribute as expected.")
         
@@ -238,11 +222,3 @@ def get_model():
     )
     logger.info("ResNet50Classifier model created successfully.")
     return model 
-
-# Example of how you might add a config for MedicalNet's original number of classes if needed:
-# In config.py:
-# NUM_CLASSES_PRETRAINED = 10 # Or whatever MedicalNet was trained on for ResNet50
-# If not defined, we can use a default or handle it.
-if not hasattr(config, 'NUM_CLASSES_PRETRAINED'):
-    logger.warning("config.NUM_CLASSES_PRETRAINED not found, using default of 10 for base model if pretraining.")
-    config.NUM_CLASSES_PRETRAINED = 10 # Default if not in config 

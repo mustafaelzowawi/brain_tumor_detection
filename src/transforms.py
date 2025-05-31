@@ -1,7 +1,7 @@
 """
 MONAI transforms for data preprocessing and augmentation.
 """
-import torch # Import torch
+import torch
 
 from monai.transforms import (
     Compose,
@@ -37,15 +37,15 @@ def get_preprocessing_transforms(modalities):
         ),
         CropForegroundd(keys=modalities, source_key=config.CROP_FOREGROUND_SOURCE_KEY, allow_smaller=True),
         Resized(keys=modalities, spatial_size=config.RESIZED_SHAPE),
-        # --- Augmentations ---
+        # Augmentations 
         RandFlipd(keys=modalities, spatial_axis=[0], prob=0.5),
         RandRotate90d(keys=modalities, prob=0.5, max_k=3, spatial_axes=(0, 1)),
-        # -------------------
+
         ConcatItemsd(keys=modalities, name="image"), # Concatenate modalities into a single multi-channel image
         EnsureTyped(keys=["image", config.TARGET_LABEL], dtype=torch.float32) # Ensure image and label are float tensors
     ])
 
-    # Validation and Test transforms (no augmentation)
+    # Validation and Test transforms with no augmentation
     val_test_transforms = Compose([
         LoadImaged(keys=modalities),
         EnsureChannelFirstd(keys=modalities),

@@ -4,20 +4,10 @@ PyTorch Dataset classes for loading brain tumor data.
 import os
 import glob
 import torch
-# import numpy as np # No longer directly used here
-# import pandas as pd # No longer directly used here
 from torch.utils.data import Dataset
-from monai.data import PersistentDataset, CacheDataset # Using MONAI's caching datasets
+from monai.data import CacheDataset
 import logging
-
 from . import config
-
-# Note: The notebook originally used a custom Dataset class that seemed to replicate
-# some MONAI functionality. It's generally recommended to use MONAI's built-in
-# dataset types like CacheDataset or PersistentDataset when using MONAI transforms
-# as they offer performance benefits (caching, multi-processing).
-
-# We will define a function to create MONAI datasets directly.
 
 def get_monai_datasets(train_data_list, val_data_list, test_data_list,
                        train_transforms, val_test_transforms):
@@ -48,10 +38,6 @@ def get_monai_datasets(train_data_list, val_data_list, test_data_list,
     return train_ds, val_ds, test_ds
 
 
-# --- Dataset for loading preprocessed .pt files (from notebook) ---
-# This dataset assumes you have already run a preprocessing script
-# that applied transforms and saved each sample as a dictionary {'image': tensor, 'label': tensor}
-# using torch.save().
 class PreprocessedDataset(Dataset):
     """
     Loads data preprocessed and saved as torch tensor files (.pt).
@@ -71,14 +57,12 @@ class PreprocessedDataset(Dataset):
     def __getitem__(self, idx):
         # Load the saved dictionary containing the image and label tensors
         try:
-            # Note: Loading arbitrary pickles can be unsafe.
             # Consider using weights_only=True if only loading tensors,
-            # but here we load a dict, so it's likely fine if you trust the source.
             data = torch.load(self.data_files[idx])
             image = data['image']
             label = data['label']
 
-            # Ensure label is in the correct shape (e.g., [1])
+            # Ensure label is in the correct shape 
             if not isinstance(label, torch.Tensor):
                 label = torch.tensor(label, dtype=torch.float32)
             label = label.view(1) # Reshape to [1] if necessary
@@ -86,8 +70,6 @@ class PreprocessedDataset(Dataset):
             return image, label
         except Exception as e:
             print(f"Error loading file {self.data_files[idx]}: {e}")
-            # Return None or raise error? Returning None might be problematic for DataLoader.
-            # Best to ensure data integrity beforehand.
             raise
 
 def get_preprocessed_datasets(train_dir=config.PREPROCESSED_TRAIN_DIR,
@@ -100,16 +82,15 @@ def get_preprocessed_datasets(train_dir=config.PREPROCESSED_TRAIN_DIR,
         val_ds = PreprocessedDataset(val_dir)
         test_ds = None
         if load_test:
-            # Try to load test_ds, but don't fail if it's not there (e.g., for local testing)
             if os.path.exists(test_dir) and os.listdir(test_dir): # Check if dir exists and is not empty
                 try:
-        test_ds = PreprocessedDataset(test_dir)
+                    test_ds = PreprocessedDataset(test_dir)
                 except FileNotFoundError:
                     logging.warning(f"Test preprocessed directory {test_dir} exists but contains no .pt files. Test set will be None.")
-                    test_ds = None # Explicitly set to None
+                    test_ds = None 
             else:
                 logging.warning(f"Test preprocessed directory {test_dir} not found or is empty. Test set will be None.")
-                test_ds = None # Explicitly set to None
+                test_ds = None 
 
         return train_ds, val_ds, test_ds
     except FileNotFoundError as e: # This will catch if train_dir or val_dir is missing

@@ -12,7 +12,6 @@ import argparse
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Import project modules
 from . import config
 from . import utils
 from . import transforms
@@ -161,7 +160,6 @@ def main(args):
             # Pass load_test=False as train.py only needs train_ds and val_ds for its loop.
             # The test set is handled by evaluate.py
             train_ds, val_ds, _ = dataset.get_preprocessed_datasets(load_test=False)
-            # Note: test_ds_from_preprocessed might be empty if preprocess.py didn't create test set
             # For pos_weight calculation, we will iterate train_ds directly later.
             logging.info(f"Loaded {len(train_ds)} training samples and {len(val_ds)} validation samples from preprocessed files.")
             # No need to create test_set.csv here, as it should be handled by preprocess.py or full run
@@ -172,7 +170,7 @@ def main(args):
              logging.error(f"An error occurred while loading preprocessed data: {e}. Exiting.")
              return
     else:
-        # ----- 1. Load and Prepare Data (Only if not loading preprocessed) -----
+        # Load and Prepare Data (Only if not loading preprocessed)
         logging.info("Loading labels...")
         try:
             data_df = utils.load_labels(config.NAME_MAPPING_CSV)
@@ -192,18 +190,17 @@ def main(args):
         # Shuffle before splitting
         data_df = data_df.sample(frac=1, random_state=config.RANDOM_SEED).reset_index(drop=True)
 
-        # Split: 70% train, 15% validation, 15% test
+        # Split: ~62.6% train, ~18.7% validation, ~18.7% test (to match preprocess.py)
         # This split is now only for the case where load_preprocessed is False.
-        # It might still fail if data_df (from name_mapping.csv) is too small.
-        train_df, temp_df = train_test_split(
-            data_df, test_size=0.3, random_state=config.RANDOM_SEED, stratify=data_df[config.TARGET_LABEL]
+        main_df, test_df = train_test_split(
+            data_df, test_size=0.1875, random_state=config.RANDOM_SEED, stratify=data_df[config.TARGET_LABEL]
         )
-        val_df, test_df = train_test_split(
-            temp_df, test_size=0.5, random_state=config.RANDOM_SEED, stratify=temp_df[config.TARGET_LABEL]
+        train_df, val_df = train_test_split(
+            main_df, test_size=0.23, random_state=config.RANDOM_SEED, stratify=main_df[config.TARGET_LABEL]
         )
         train_df_for_weights = train_df # Used for pos_weight if not load_preprocessed
 
-        utils.print_class_distribution(train_df, 'Training')
+        utils.print_class_distribution(train_df, 'Training (raw data path)')
         utils.print_class_distribution(val_df, 'Validation')
         utils.print_class_distribution(test_df, 'Test')
 
@@ -212,14 +209,13 @@ def main(args):
         test_df.to_csv(test_csv_path, index=False)
         logging.info(f"Test set saved to {test_csv_path}")
 
-        # ----- 2. Create Datasets and DataLoaders (Only if not loading preprocessed) -----
+        # Create Datasets and DataLoaders (Only if not loading preprocessed)
         logging.info("Getting preprocessing transforms...")
         train_transforms, val_test_transforms = transforms.get_preprocessing_transforms(config.MODALITIES)
 
         logging.info("Preparing data lists for MONAI datasets...")
         train_data_list = utils.prepare_data_list(train_df, config.MODALITIES)
         val_data_list = utils.prepare_data_list(val_df, config.MODALITIES)
-        # test_data_list preparation for MONAI dataset would go here if needed for a test_ds
 
         logging.info("Creating MONAI datasets (using CacheDataset)...")
         train_ds, val_ds, _ = dataset.get_monai_datasets(
@@ -231,7 +227,7 @@ def main(args):
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     val_loader = DataLoader(val_ds, batch_size=config.EVAL_BATCH_SIZE, shuffle=False, num_workers=num_workers) # Keep eval batch size from config for now
 
-    # ----- 3. Initialize Model, Loss, Optimizer -----
+    # Initialize Model, Loss, Optimizer 
     logging.info("Initializing model...")
     model = model_definition.get_model().to(device)
 
@@ -249,7 +245,6 @@ def main(args):
         num_pos = 0
         # Create a temporary DataLoader to iterate through train_ds once
         # This is inefficient for large datasets but fine for calculating pos_weight once.
-        # Ensure train_ds is already created.
         temp_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=False) # No shuffle needed
         for _, batch_labels in temp_loader:
             num_pos += torch.sum(batch_labels == 1).item()
@@ -264,7 +259,6 @@ def main(args):
         else:
             pos_weight_value = num_neg / num_pos
     else:
-        # Calculate class weights using the train_df from the split (original logic)
         # This part will only be effective if load_preprocessed is False
         # and data_df is large enough for the 3-way split.
         if train_df_for_weights is None or train_df_for_weights.empty:
@@ -288,7 +282,7 @@ def main(args):
     # Initialize GradScaler
     scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
 
-    # ----- 4. Training Loop -----
+    # Training Loop 
     logging.info("--- Starting Training Loop ---")
     best_val_loss = float('inf')
     training_history = {'train_loss': [], 'val_loss': [], 'train_acc': [], 'val_acc': []}
@@ -320,8 +314,8 @@ def main(args):
             model_save_dir = os.path.join(config.MODEL_DIR, "classification")
             os.makedirs(model_save_dir, exist_ok=True)
             model_save_path = os.path.join(model_save_dir, f"{config.MODEL_NAME}_best.pth")
-            # Save model state_dict (recommended)
-            # If using DataParallel, save module's state_dict
+            # Save model state_dict 
+            # Save module's state_dict if using DataParallel
             if isinstance(model, nn.DataParallel):
                 torch.save(model.module.state_dict(), model_save_path)
             else:

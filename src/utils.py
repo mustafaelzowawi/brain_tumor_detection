@@ -101,7 +101,7 @@ def add_image_paths(df, modalities, base_data_dir):
                             temp_paths[modality] = file_path_gz
                         else:
                             all_modalities_present = False
-                            break # A modality is missing in this prospective_subject_dir
+                            break
                 
                 if all_modalities_present:
                     for modality in modalities:
@@ -111,8 +111,6 @@ def add_image_paths(df, modalities, base_data_dir):
         
         if not found_path_for_subject:
             # Fallback to original logic if not found in subdirs, or log a warning
-            # Original logic: subject_id folder is directly under base_data_dir
-            # This will likely still fail if the above loop didn't find it, but included for robustness.
             subject_dir_direct = os.path.join(base_data_dir, subject_id)
             if os.path.isdir(subject_dir_direct):
                  all_modalities_present_direct = True
@@ -132,11 +130,6 @@ def add_image_paths(df, modalities, base_data_dir):
                  if all_modalities_present_direct:
                     for modality in modalities:
                         df.loc[idx, modality] = temp_paths_direct[modality]
-                 # else:
-                 #    logging.warning(f"Could not find all modality files for subject {subject_id} in {subject_dir_direct} or common subdirectories.")
-            # else:
-            #    logging.warning(f"Subject directory not found for {subject_id} in {base_data_dir} or common subdirectories.")
-
 
     # Check if any paths are still None (meaning files weren't found)
     for modality in modalities:
@@ -154,7 +147,7 @@ def check_file_paths(df, modalities):
         for modality in modalities:
             total_checked += 1
             file_path = row[modality]
-            # Check if file_path is None (path not constructed) or if it is not an actual file
+            # Check if file_path is None 
             if file_path is None or not os.path.isfile(file_path):
                 missing_files.append(str(file_path) if file_path is not None else f"Path not constructed for {row['SubjectID']} - {modality}")
 

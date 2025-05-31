@@ -146,7 +146,7 @@ Once the data is preprocessed, you can train the classification model.
     ```bash
     python3 -m src.train --epochs <num_epochs>
     ```
-    This method applies transforms on-the-fly and is generally slower for repeated runs compared to using preprocessed data. It will also perform its own internal 70/15/15 data split using `name_mapping.csv` and save a `test_set.csv`.
+    This method applies transforms on-the-fly and is generally slower for repeated runs compared to using preprocessed data. It will perform its own internal data split (approximately 62.6% train, 18.7% validation, 18.7% test, consistent with `preprocess.py`) using `name_mapping.csv` and save a `test_set.csv` to `data/test_set.csv`.
 *   **Output:**
     *   Model checkpoints (e.g., `resnet50_classifier_best.pth`, `resnet50_classifier_final.pth`) will be saved to `models/classification/`.
     *   Logs will be saved to `logs/training.log`.
@@ -164,10 +164,7 @@ After training, evaluate the model's performance on the test set.
     *   By default, this will load the `_best.pth` model from `models/classification/`.
     *   To specify a different model: `python3 -m src.evaluate --load_preprocessed --model_path path/to/your/model.pth`
 *   **Alternative (evaluating from raw NIfTI files):**
-    If you trained without `--load_preprocessed`, `train.py` would have created a `data/test_set.csv`. You can evaluate using this and raw files:
-    ```bash
-    python3 -m src.evaluate
-    ```
+    If you trained using `python3 -m src.train` (without `--load_preprocessed`), that process would have created a `data/test_set.csv` based on its internal data split. You can then evaluate this specific test set using raw NIfTI files by running: `python3 -m src.evaluate` (without `--load_preprocessed`). This command will use the `data/test_set.csv` to identify the test subjects and load their corresponding raw image files.
 *   **Using Validation Set for Quick Evaluation (Local Testing):**
     If you only preprocessed train/val sets (e.g., during initial local tests if `src/preprocess.py` was modified to only create train/val):
     ```bash

@@ -12,7 +12,7 @@ import argparse
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Import project modules
+
 from . import config
 from . import utils
 from . import transforms
@@ -83,7 +83,6 @@ def evaluate_model(model, test_loader, device):
     logging.info("\nConfusion Matrix:")
     print(cm) # Print CM directly
 
-    # Also log report and CM to file
     logging.info("Classification Report (logged):\n" + report)
     logging.info("Confusion Matrix (logged):\n" + str(cm))
 
@@ -106,7 +105,7 @@ def main(args):
     logging.info(f"Using device: {device}")
     logging.info(f"Load preprocessed data: {load_preprocessed}")
 
-    # ----- 1. Load Test Data Information -----
+    # Load Test Data Information
     test_csv_path = os.path.join(config.DATA_DIR, 'test_set.csv')
     if not os.path.exists(test_csv_path):
         logging.error(f"Test set CSV not found at {test_csv_path}. Run train.py first. Exiting.")
@@ -115,7 +114,7 @@ def main(args):
     logging.info(f"Loading test set information from {test_csv_path}...")
     test_df = pd.read_csv(test_csv_path)
 
-    # Check if file paths need to be reconstructed (e.g., if run on different machine)
+    # Check if file paths need to be reconstructed
     # Assuming the CSV contains the SubjectID
     if config.MODALITIES[0] not in test_df.columns:
         logging.info("Reconstructing image paths for test set...")
@@ -125,7 +124,7 @@ def main(args):
              logging.error("Missing files detected in test set. Exiting.")
              return
 
-    # ----- 2. Create Test Dataset and DataLoader -----
+    # Create Test Dataset and DataLoader
     if load_preprocessed:
         logging.info("Creating test dataset from preprocessed files...")
         try:
@@ -154,7 +153,7 @@ def main(args):
     logging.info("Creating Test DataLoader...")
     test_loader = DataLoader(test_ds, batch_size=config.EVAL_BATCH_SIZE, shuffle=False, num_workers=num_workers)
 
-    # ----- 3. Load Trained Model -----
+    # Load trained model
     # Determine model path: argument > config default best > config default final
     if model_path_arg:
         model_path = model_path_arg
@@ -162,7 +161,7 @@ def main(args):
             logging.error(f"Specified model path does not exist: {model_path}. Exiting.")
             return
     else:
-        # --- Modified Path ---
+        #Modified Path
         model_base_dir = os.path.join(config.MODEL_DIR, "classification")
         model_path = os.path.join(model_base_dir, f"{config.MODEL_NAME}_best.pth")
         if not os.path.exists(model_path):
@@ -171,7 +170,6 @@ def main(args):
             if not os.path.exists(model_path):
                 logging.error(f"No trained model found in {model_base_dir}. Run train.py first or specify --model_path. Exiting.")
                 return
-        # --- End Modified Path ---
 
     logging.info(f"Loading trained model from {model_path}...")
     model = model_definition.get_model() # Initialize model structure
@@ -198,7 +196,7 @@ def main(args):
 
     model = model.to(device)
 
-    # ----- 4. Run Evaluation -----
+    # Run Evaluation
     evaluate_model(model, test_loader, device)
 
     logging.info("--- Evaluation Finished ---")
