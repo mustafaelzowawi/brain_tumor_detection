@@ -230,15 +230,11 @@ Key parameters can be adjusted in `src/config.py`:
 
 ## References and Citations
 
-If you use the BraTS dataset in your research, please ensure to cite the following publications as per the BraTS data usage agreement:
-
 1.  Menze, B. H., Jakab, A., Bauer, S., Kalpathy-Cramer, J., Farahani, K., Kirby, J., et al. (2015). The Multimodal Brain Tumor Image Segmentation Benchmark (BRATS). *IEEE Transactions on Medical Imaging, 34*(10), 1993-2024. DOI: [10.1109/TMI.2014.2377694](https://doi.org/10.1109/TMI.2014.2377694)
 
 2.  Bakas, S., Akbari, H., Sotiras, A., Bilello, M., Rozycki, M., Kirby, J. S., et al. (2017). Advancing The Cancer Genome Atlas glioma MRI collections with expert segmentation labels and radiomic features. *Nature Scientific Data, 4*, 170117. DOI: [10.1038/sdata.2017.117](https://doi.org/10.1038/sdata.2017.117)
 
 3.  Bakas, S., Reyes, M., Jakab, A., Bauer, S., Rempfler, M., Crimi, A., et al. (2018). Identifying the Best Machine Learning Algorithms for Brain Tumor Segmentation, Progression Assessment, and Overall Survival Prediction in the BRATS Challenge. *arXiv preprint arXiv:1811.02629*. Link: [https://arxiv.org/abs/1811.02629](https://arxiv.org/abs/1811.02629)
-
-Additionally, if no restrictions are imposed by the journal/conference, the BraTS organizers request citing the specific TCIA data sources:
 
 4.  Bakas, S., Akbari, H., Sotiras, A., Bilello, M., Rozycki, J., Kirby, J. S., et al. (2017). Segmentation Labels and Radiomic Features for the Pre-operative Scans of the TCGA-GBM collection. *The Cancer Imaging Archive*. DOI: [10.7937/K9/TCIA.2017.KLXWJJ1Q](https://doi.org/10.7937/K9/TCIA.2017.KLXWJJ1Q)
 
